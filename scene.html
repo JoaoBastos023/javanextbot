@@ -185,6 +185,7 @@
                 chaser.name = "chaser";
 
                 chaser.translateY(0.5);
+                chaser.translateX(-10);
 
                 //
                 //
@@ -255,6 +256,7 @@
         const cameraBox = new THREE.Box3(); // Will be updated every frame
 
         function isCameraColliding() {
+            const chaserObject = sceneElements.sceneGraph.getObjectByName("chaser");
             const camPosition = sceneElements.control.object.position;
 
             // Create a tiny box around the camera's current position
@@ -267,6 +269,11 @@
                     return true; // Collision detected!
                 }
             }
+
+            //Collide with chaser
+            const chaserBox = new THREE.Box3().setFromObject(chaserObject);
+            if (cameraBox.intersectsBox(chaserBox))
+                resetGame();
             return false; // No collision
         }
 
@@ -409,7 +416,7 @@
             //
 
             // **Check if chaser reaches the player**
-            if (isColliding(chaser, sceneElements.camera)) {
+            if (isColliding(chaser, sceneElements.control.object)) {
                 resetGame(); // Call game over function
             }
         }
