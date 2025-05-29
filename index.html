@@ -355,8 +355,12 @@
                 keyA = false;
                 keyS = false;
                 keyD = false;
+                generatorsCollected = 0;
+                garageDoorOpen = 0;
+
                 
                 // Pause the game
+                gamePaused = 1;
                 document.getElementById("loadingScreen").style.display = "flex";
                 sceneElements.control.unlock();
                 return;
@@ -500,6 +504,8 @@
 
         // HANDLING EVENTS
         // Event Listeners
+        
+        // Menu screen
         document.getElementById("startButton").addEventListener("click", function () {
             document.getElementById("loadingScreen").style.display = "none";
             // Lock the pointer or start game loop if needed
@@ -510,14 +516,16 @@
             requestAnimationFrame(computeFrame);
         });
 
-
+        // Victory screen
         document.getElementById("backToStartBtn").addEventListener("click", () => {
             document.getElementById("victory").style.display = "none";
             document.getElementById("loadingScreen").style.display = "flex";
             
             // Restart game
             sceneElements.control.unlock();
-            init();
+            resetGame(sceneElements);
+            generatorsCollected = 0;
+            garageDoorOpen = 0;
         });
 
         // Person leaves the window or pauses by pressing 'p'
@@ -616,7 +624,6 @@
                     break;
             }
         }
-
 
         // STARTING
 

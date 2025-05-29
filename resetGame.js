@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 
+ import { addCollisions } from './collision.js';
+
+import {createGlowingObject} from './generator.js'
+
 export function resetGame(sceneElements) {
     alert("Game Over! Restarting..."); // Show game over message
 
@@ -7,6 +11,22 @@ export function resetGame(sceneElements) {
     sceneElements.camera.position.set(0, 2, 5);
 
     sceneElements.chaser.position.copy(chaserPostion());
+
+    // Reset generators, card, doors
+    sceneElements.collectibleObjects.forEach((obj, index) => {
+        obj.collected = false;
+        obj.mesh.visible = true;
+    });
+
+    sceneElements.card.collected = true;
+    sceneElements.card.mesh.visible = false;
+
+    // Replace walls
+    sceneElements.walls = [];
+    sceneElements.walls = addCollisions();
+
+    const door = sceneElements.sceneGraph.getObjectByName('door');
+    door.visible = true;
 
 }
 
