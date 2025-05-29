@@ -38,9 +38,13 @@
 
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        import { isColliding, isCameraColliding, addCollisions } from './collision.js';
+        import { isColliding, isCameraColliding, addCollisions, checkEndZoneCollision } from './collision.js';
 
-        import {resetGame} from './resetGame.js';
+        import {resetGame, chaserPosition} from './resetGame.js';
+
+        import {chaseAction} from './chaser.js';
+
+        import {createGlowingObject} from './generator.js'
 
 
         // To store the scene graph, and elements usefull to rendering the scene
@@ -53,6 +57,10 @@
             player: null,
             flashlight: null,
             chaser: null,
+            doorUnlocked: false,    // Supermarket door unlock
+            collectibleObjects: [], // objects to collect
+            card: null,     // final object to collect
+            endZone: null, // final objective
         };
 
         // HELPER FUNCTIONS
@@ -114,16 +122,39 @@
 
                 flashlight.castShadow = true;
 
-                // TEMP LIGHT
-                const outside = new THREE.SpotLight(0xffffff);
+                // LIGHT COMING FROM DOOR
+                const outside = new THREE.SpotLight(0xffffff, 2, 50, Math.PI / 6, 0.5, 1);
                 outside.position.set(-21,2,-46);
-                outside.target.position.set(0, 3, -46);  // Where the light points
+                outside.target.position.set(-8, 2, -46);  // Where the light points
 
-                const spotLightHelper = new THREE.SpotLightHelper( outside );
-                sceneElements.sceneGraph.add( spotLightHelper );
+                // const spotLightHelper = new THREE.SpotLightHelper( outside );
+                // sceneElements.sceneGraph.add( spotLightHelper );
 
                 sceneElements.sceneGraph.add(outside);
                 sceneElements.sceneGraph.add(outside.target);
+
+                // ADD LAMP IN FRONT OF CINEMA
+                const ceilingLamp = new THREE.PointLight(0xffffff, 2.5, 20, 2); //color, intensity, range, decay
+
+                ceilingLamp.position.set(5.5, 3, 76.45);
+                ceilingLamp.castShadow = true;
+
+                // Optional: Adjust shadow quality
+                ceilingLamp.shadow.mapSize.width = 1024;
+                ceilingLamp.shadow.mapSize.height = 1024;
+                ceilingLamp.shadow.bias = -0.005;
+
+                // Optional: Add a visible sphere to simulate a bulb (for visual feedback)
+                const bulb = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.1, 8, 8),
+                    new THREE.MeshBasicMaterial({ color: 0xffffaa })
+                );
+
+                bulb.position.copy(ceilingLamp.position);
+                sceneElements.sceneGraph.add(bulb);
+
+                // Add the lamp to the scene
+                sceneElements.sceneGraph.add(ceilingLamp);
 
                 // ************
                 // Add a chaser
@@ -138,6 +169,89 @@
                 chaser.castShadow = true;
 
                 chaser.position.set(51, 1.5, -44);
+                chaser.position.copy(chaserPosition());
+
+                // *******
+                // WALL ON SUPERMARKET
+                // *******
+                const doorGeometry = new THREE.BoxGeometry(0.2, 4, 4);
+
+                const textureLoader = new THREE.TextureLoader();
+                const wallTexture = textureLoader.load('textures/door.jpg');
+
+                const doorMaterial = new THREE.MeshPhongMaterial({map: wallTexture});
+                const door = new THREE.Mesh(doorGeometry, doorMaterial);
+                door.position.set(44.5,1.8, -50.2);
+                sceneElements.sceneGraph.add(door);
+                door.name = 'door';
+
+                // ******
+                // CINEMA MOVIE
+                // ******
+                const cinemaGeometry = new THREE.BoxGeometry(0.2, 4, 4);
+
+                const texturecinemaLoader = new THREE.TextureLoader();
+                const cinemaTexture = texturecinemaLoader.load('textures/movie.jpg');
+
+                const cinemaMaterial = new THREE.MeshPhongMaterial({map: cinemaTexture});
+                const cinema = new THREE.Mesh(cinemaGeometry, cinemaMaterial);
+                cinema.position.set(-17.9, 4, 84);
+                sceneElements.sceneGraph.add(cinema);
+                cinema.name = 'cinema';
+
+                // PROJECTOR
+                // LIGHT COMING FROM DOOR
+                const projector = new THREE.SpotLight(0xffffff, 4, 50, Math.PI / 6, 0.5, 1);
+                projector.position.set(-10,6,84);
+                projector.target.position.set(-17.9, 4, 84);  // Where the light points
+
+                // const spotLightHelper = new THREE.SpotLightHelper( outside );
+                // sceneElements.sceneGraph.add( spotLightHelper );
+
+                sceneElements.sceneGraph.add(projector);
+                sceneElements.sceneGraph.add(projector.target);
+
+
+                // ******
+                // GENERATORS
+                // **********
+                const positions = [
+                    new THREE.Vector3(16.25, 1.2, -26.25),
+                    new THREE.Vector3(85.5, 0.5, 34),
+                    new THREE.Vector3(23.5, 0.5, 30.5),
+                    new THREE.Vector3(-1, 1.5, 98),
+                ];
+
+                positions.forEach(pos => {
+                    const glowingObj = createGlowingObject(pos);
+                    sceneElements.sceneGraph.add(glowingObj);
+                    sceneElements.collectibleObjects.push({ mesh: glowingObj, collected: false });
+                });
+
+                // CARD AVAILABLE WHEN ALL GENERATORS ARE COLLECTED
+                const card = createGlowingObject(new THREE.Vector3(5.5,0,-65.1));
+                sceneElements.sceneGraph.add(card);
+                sceneElements.card = {mesh: card, collected: false};
+
+                // CREATE END ZONE
+                // BOX
+                const endZoneCenter = new THREE.Vector3(-38, 2, 51);
+                const endZoneSize = new THREE.Vector3(4, 4, 4);
+                sceneElements.endZone = new THREE.Box3().setFromCenterAndSize(endZoneCenter, endZoneSize);
+
+                const endZoneGeometry = new THREE.BoxGeometry(4, 0.1, 4); // width, height, depth
+
+                const endZoneMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00,
+                    transparent: true,
+                    opacity: 0.4,
+                });
+
+                const endZone = new THREE.Mesh(endZoneGeometry, endZoneMaterial);
+                endZone.position.set(-40, 0.1, 52);
+
+                sceneElements.sceneGraph.add(endZone);
+
 
             },
 
@@ -175,6 +289,9 @@
 
                         console.log("GLB Scene loaded and added!");
 
+                        // Enable the start button
+                        document.getElementById("startButton").disabled = false;
+
                     },
                     undefined,
                     function (error) {
@@ -185,6 +302,7 @@
                 sceneElements.walls = addCollisions();
                 console.log(sceneElements.walls);
 
+                // BOX HELPERS
                 for (const box of sceneElements.walls) {
                     const helper = new THREE.Box3Helper(box, 0xff0000); // Red color for visibility
                     sceneElements.sceneGraph.add(helper);
@@ -196,9 +314,21 @@
         // ANIMATION        
         //To keep track of the keyboard - WASD
         var keyD = false, keyA = false, keyS = false, keyW = false;
+                    
+        // Generator collection progress
+        let generatorsCollected = 0;
+        const totalGenerators = 4;
+        let garageDoorOpen = 0;
+        const message = document.getElementById("center-message");
+        // Game status
+        let gamePaused = 0;
+
 
         function computeFrame(time) {
 
+            if (gamePaused) {
+                return;
+            }
             //
             // CONTROLING THE CAMERA WITH THE KEYBOARD
             //
@@ -218,9 +348,18 @@
             sceneElements.control.moveForward(velocity.z);
 
             // Check if player get's caught by chaser
-            if (isColliding(sceneElements.control.object, sceneElements.chaser)) {
-                resetGame(sceneElements, keyW, keyS, keyD, keyA);
-            }
+            // if (isColliding(sceneElements.control.object, sceneElements.chaser)) {
+            //     resetGame(sceneElements);
+            //     keyW = false;
+            //     keyA = false;
+            //     keyS = false;
+            //     keyD = false;
+                
+            //     // Pause the game
+            //     document.getElementById("loadingScreen").style.display = "flex";
+            //     sceneElements.control.unlock();
+            //     return;
+            // }
             
             // Check for collision
             if (isCameraColliding(sceneElements.control.object, sceneElements.walls)) {
@@ -228,8 +367,111 @@
                 sceneElements.control.object.position.copy(originalPosition);
             }
 
+            // Make chaser chase player
+            chaseAction(sceneElements);
 
-            console.log(sceneElements.player.object.position);
+            // CROUCH ANIMATION
+            const player = sceneElements.player.object;
+            const targetY = keys.shift ? 1 : 2;
+            const currentY = player.position.y;
+
+            // Smooth move
+            player.position.y += (targetY - currentY) * 0.1;
+
+            // Optional snap
+            if (Math.abs(targetY - currentY) < 0.01) {
+                player.position.y = targetY;
+            }
+
+
+            // PLAYER POSITION
+            //console.log(sceneElements.player.object.position)
+
+            // CHECK IF PLAYER FINDS A GENERATOR
+            const playerPos = sceneElements.player.object.position;
+            const activationDistance = 1.5; // How close the player must be
+            
+            sceneElements.collectibleObjects.forEach((obj, index) => {
+                if (!obj.collected) {
+                    const objWorldPos = new THREE.Vector3();
+                    obj.mesh.getWorldPosition(objWorldPos);
+                    
+                    const distance = playerPos.distanceTo(objWorldPos);
+                    
+                    if (distance < activationDistance) {
+                        obj.collected = true;
+                        obj.mesh.visible = false; // Or play effect
+                        console.log(`Generator nº ${index + 1} collected!`);
+                        
+                        // Increment number of generators collected
+                        generatorsCollected++;
+                        updateGeneratorUI();
+                    }
+                }
+            });
+
+            function updateGeneratorUI() {
+                const counterEl = document.getElementById("generator-counter");
+                counterEl.textContent = `${generatorsCollected} out of ${totalGenerators} generators collected`;
+            }
+
+            // CHECK IF ALL ARE ACTIVATED
+            const allCollected = sceneElements.collectibleObjects.every(obj => obj.collected);
+            const door = sceneElements.sceneGraph.getObjectByName('door');
+
+            if (allCollected & !sceneElements.doorUnlocked) {
+                sceneElements.doorUnlocked = true;
+                // REMOVE WALL FROM SUPERMARKET
+                sceneElements.walls.pop();
+                door.visible = false;
+                console.log("All generators collected — supermarket is open!");
+
+                message.textContent = "All generators collected — supermarket is open!";
+                message.style.display = "block";
+
+                // Wait 3 seconds
+                setTimeout(() => {
+                    message.style.display = "none";
+                }, 3000);
+            }
+
+            if (allCollected) {
+                // CHECK IF PLAYER IS NEAR CARD
+                if (!sceneElements.card.collected) {
+                    const cardWorldPos = new THREE.Vector3();
+                    sceneElements.card.mesh.getWorldPosition(cardWorldPos);
+    
+                    const distance = playerPos.distanceTo(cardWorldPos);
+    
+                    if (distance < activationDistance) {
+                        sceneElements.card.collected = true;
+                        sceneElements.card.mesh.visible = false;
+
+                        // REMOVE BARRIER FROM GARAGE
+                        sceneElements.walls.pop();
+                        console.log('Card collected!');
+                        garageDoorOpen = 1;
+
+                        message.textContent = "Garage door is open!";
+                        message.style.display = "block";
+
+                        // Wait 3 seconds
+                        setTimeout(() => {
+                            message.style.display = "none";
+                        }, 3000);
+                    }
+                }
+            }
+
+            if (garageDoorOpen) {
+                // Check if player reached
+                if (checkEndZoneCollision(sceneElements))  {
+                    // Go to victory screen
+                    document.getElementById("victory").style.display = "flex";
+                    sceneElements.control.unlock();
+                    return;
+                }
+            }
 
             // Rendering
             helper.render(sceneElements);
@@ -247,7 +489,9 @@
         function init() {
             helper.initEmptyScene(sceneElements);
             scene.load3DObjects(sceneElements.sceneGraph);
-            requestAnimationFrame(computeFrame);
+            generatorsCollected = 0;
+            garageDoorOpen = 0;
+            //requestAnimationFrame(computeFrame);
         }
 
         // Starting
@@ -255,7 +499,47 @@
 
         // HANDLING EVENTS
         // Event Listeners
-        document.addEventListener('click', () => sceneElements.control.lock()); // Click to start
+        document.getElementById("startButton").addEventListener("click", function () {
+            document.getElementById("loadingScreen").style.display = "none";
+            // Lock the pointer or start game loop if needed
+            sceneElements.control.lock(); // Click to start
+
+            // Start game
+            gamePaused = 0;
+            requestAnimationFrame(computeFrame);
+        });
+
+
+        document.getElementById("backToStartBtn").addEventListener("click", () => {
+            document.getElementById("victory").style.display = "none";
+            document.getElementById("loadingScreen").style.display = "flex";
+            
+            // Restart game
+            sceneElements.control.unlock();
+            init();
+        });
+
+        // Person leaves the window or pauses by pressing 'p'
+        window.addEventListener("blur", () => {
+            gamePaused = 1;
+
+            // Pause the game
+            document.getElementById("loadingScreen").style.display = "flex";
+            sceneElements.control.unlock();
+
+        });
+
+        // Listen for 'P' key
+            window.addEventListener("keydown", (e) => {
+                if (e.code === "KeyP") {
+                    gamePaused = 1;
+
+                    // Pause the game
+                    document.getElementById("loadingScreen").style.display = "flex";
+                    sceneElements.control.unlock();
+                }
+            });
+
 
         window.addEventListener('resize', resizeWindow);
 
@@ -267,6 +551,21 @@
             if (event.key.toLowerCase() === 'f') {
                 sceneElements.flashlight.visible = !sceneElements.flashlight.visible;
             }
+        });
+
+        const keys = {
+            space: false,
+            shift: false,
+        };
+
+        window.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') keys.space = true;
+            if (event.shiftKey) keys.shift = true;
+        });
+
+        window.addEventListener('keyup', (event) => {
+            if (event.code === 'Space') keys.space = false;
+            if (!event.shiftKey) keys.shift = false;
         });
 
         // Update render image size and camera aspect when the window is resized
@@ -327,7 +626,63 @@
 </head>
 
 <body>
-    <div id="Tag3DScene"> </div>
+    <div id="loadingScreen">
+        <div class="loading-content">
+            <img src="./map/2D MAP.png" alt="Game Map" style="scale: 2; margin-bottom: 20%;" />
+            <p>You're stuck in a mall. There will be 4 generators that you will have to collect to find a way to escape, but beware of the red sphere!</p>
+            <button id="startButton" disabled>Start Game</button>
+            <div id="controlsOverlay">
+                <p><strong>Controls:</strong> WASD to move | F to toggle flashlight | Shift to crouch</p>
+                </div>
+
+        </div>
+    </div>
+
+    <div id="Tag3DScene"> 
+        <div id="generator-counter" style="
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 1.5em;
+            font-family: sans-serif;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 15px;
+            border-radius: 8px;
+            z-index: 100;
+            ">
+            0 out of 4 generators collected
+        </div>
+
+        <div id="center-message" style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 2em;
+            font-family: sans-serif;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px 30px;
+            border-radius: 10px;
+            z-index: 1000;
+            display: none;
+            text-align: center;
+        ">
+            All generators collected — supermarket is open!
+        </div>
+    </div>
+
+    <div id="victory" style="display: none; position: absolute; top: 0; left: 0; 
+        width: 100%; height: 100%; background: rgba(0,0,0,0.8); 
+        justify-content: center; align-items: center; flex-direction: column; z-index: 10; color: white; font-family: sans-serif;">
+    
+        <h1 style="font-size: 3em; margin-bottom: 1em;">You Escaped!</h1>
+        
+        <button id="backToStartBtn" style="font-size: 1.5em; padding: 0.5em 1em; cursor: pointer;">
+            Back to Start
+        </button>
+    </div>
 </body>
 
 </html>

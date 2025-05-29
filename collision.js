@@ -40,3 +40,14 @@ export function addCollisions() {
     const walls = createWalls();
     return walls;
 }
+
+export function checkEndZoneCollision(sceneElements) {
+    const playerBox = new THREE.Box3().setFromCenterAndSize(
+        sceneElements.control.object.position,
+        new THREE.Vector3(1, 1.7, 1) // player size
+    );
+
+    if (playerBox.intersectsBox(sceneElements.endZone)) {
+        return 1;
+    } else return 0;
+}
