@@ -348,18 +348,18 @@
             sceneElements.control.moveForward(velocity.z);
 
             // Check if player get's caught by chaser
-            // if (isColliding(sceneElements.control.object, sceneElements.chaser)) {
-            //     resetGame(sceneElements);
-            //     keyW = false;
-            //     keyA = false;
-            //     keyS = false;
-            //     keyD = false;
+            if (isColliding(sceneElements.control.object, sceneElements.chaser)) {
+                resetGame(sceneElements);
+                keyW = false;
+                keyA = false;
+                keyS = false;
+                keyD = false;
                 
-            //     // Pause the game
-            //     document.getElementById("loadingScreen").style.display = "flex";
-            //     sceneElements.control.unlock();
-            //     return;
-            // }
+                // Pause the game
+                document.getElementById("loadingScreen").style.display = "flex";
+                sceneElements.control.unlock();
+                return;
+            }
             
             // Check for collision
             if (isCameraColliding(sceneElements.control.object, sceneElements.walls)) {
@@ -630,6 +630,7 @@
         <div class="loading-content">
             <img src="./map/2D MAP.png" alt="Game Map" style="scale: 2; margin-bottom: 20%;" />
             <p>You're stuck in a mall. There will be 4 generators that you will have to collect to find a way to escape, but beware of the red sphere!</p>
+            <p>Not every store is available for you to enter and some with wooden planks you can crouch using SHIFT to enter them.</p>
             <button id="startButton" disabled>Start Game</button>
             <div id="controlsOverlay">
                 <p><strong>Controls:</strong> WASD to move | F to toggle flashlight | Shift to crouch</p>
