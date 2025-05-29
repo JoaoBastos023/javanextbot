@@ -10,7 +10,7 @@ export function resetGame(sceneElements) {
     // Reset player's position
     sceneElements.camera.position.set(0, 2, 5);
 
-    sceneElements.chaser.position.copy(chaserPostion());
+    sceneElements.chaser.position.copy(chaserPosition());
 
     // Reset generators, card, doors
     sceneElements.collectibleObjects.forEach((obj, index) => {
