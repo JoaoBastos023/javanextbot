@@ -283,6 +283,9 @@ export function createWalls() {
         [[27, 2, -80.5], [45, 1, -77.3]],
         [[27, 2, -73.5], [45, 1, -70.3]],
         [[28, 2, -66.5], [45, 1, -63.3]],
+
+        // Restaurant entrance in front of security
+        [[1.5, 2 , -55], [-1.6, 1, -55]],
         
         
         
