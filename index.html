@@ -291,6 +291,7 @@
 
                         // Enable the start button
                         document.getElementById("startButton").disabled = false;
+                        document.getElementById("startButton").innerHTML = "Start Game";
 
                     },
                     undefined,
@@ -631,7 +632,7 @@
             <img src="./map/2D MAP.png" alt="Game Map" style="scale: 2; margin-bottom: 20%;" />
             <p>You're stuck in a mall. There will be 4 generators that you will have to collect to find a way to escape, but beware of the red sphere!</p>
             <p>Not every store is available for you to enter and some with wooden planks you can crouch using SHIFT to enter them.</p>
-            <button id="startButton" disabled>Start Game</button>
+            <button id="startButton" disabled>Loading...</button>
             <div id="controlsOverlay">
                 <p><strong>Controls:</strong> WASD to move | F to toggle flashlight | Shift to crouch</p>
                 </div>
